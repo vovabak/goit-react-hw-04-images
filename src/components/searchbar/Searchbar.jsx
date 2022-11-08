@@ -1,25 +1,23 @@
 import { AiOutlineSearch } from 'react-icons/ai';
-import { Component } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { IconContext } from "react-icons";
 import PropTypes from "prop-types";
 import { SearchbarHeader, Form, SearchFormButton, ButtonLabel, Input } from './Searchbar.styled';
 
 
-export class Searchbar extends Component {
+export const Searchbar = ({querry: prevQuerry, onSubmit}) => {
 
-    state = {
-        newQuerry: '',
+    const [newQuerry, setNewQuerry] = useState('');
+
+    const handleChange = (e) => {     
+        setNewQuerry(e.currentTarget.value)
     }
 
-    handleChange = (e) => {     
-        this.setState({ newQuerry: e.currentTarget.value })
-    }
-
-    handleSubmit = (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
         
-        const querry = this.state.newQuerry.trim().toLowerCase();       
+        const querry = newQuerry.trim().toLowerCase();       
         
         if (querry === '') {
 
@@ -29,20 +27,19 @@ export class Searchbar extends Component {
             return
         }
 
-        if (querry === this.props.querry) {
+        if (querry === prevQuerry) {
 
             toast('Please, try different querry')
             
             return
         }
                 
-        this.props.onSubmit(querry)
-        
+        onSubmit(querry)        
     }
-    render() {
-        return (
+    
+    return (
         <SearchbarHeader>
-            <Form onSubmit={this.handleSubmit}>
+            <Form onSubmit={handleSubmit}>
                 <SearchFormButton type="submit">
                     <ButtonLabel>Search</ButtonLabel>
                     <IconContext.Provider
@@ -59,11 +56,10 @@ export class Searchbar extends Component {
                         autocomplete="off"
                         autoFocus
                         placeholder="Search images and photos"
-                        onChange={this.handleChange} />                    
+                        onChange={handleChange} />                    
             </Form>                       
         </SearchbarHeader>
     )
-    }    
 }
 
 Searchbar.propTypes = {

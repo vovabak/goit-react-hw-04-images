@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -10,115 +10,84 @@ import { Loader } from '../loader';
 import { Modal } from '../modal';
 import { Container } from './App.styled';
 
+export const App = () => {
+  const [gallery, setGallery] = useState([]);
+  const [querry, setQuerry] = useState('');
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('idle'); 
+  const [showModal, setShowModal] = useState(false);
+  const [showLoadMore, setShowLoadMore] = useState(false);
+  
+  
+  useEffect(() => {    
 
-
-export class App extends Component {
-
-  state = {
-    gallery: [],    
-    querry: '',
-    page: 1,    
-    status: 'idle',
-    error: null,
-    showModal: false,
-    showLoadMore: false,
-  }
- 
-
-  async componentDidUpdate(_, prevState) {
-
-    const { querry, gallery, page, modalImage } = this.state
-    const {querry: prevQuerry, gallery: prevGallery, page: prevPage,} = prevState
+    if (!querry) return
       
-    if (modalImage) return
+    setStatus('pending')    
     
-    if (prevQuerry !== querry) {
-      this.setState({ gallery, page: 1 });
-    }
-
-    if (prevGallery === gallery && prevPage !== page) {      
-
-      this.setState({ status: 'pending', })
-
-      try {
-        const response = await getImages(querry, page)       
-
+    getImages(querry, page)
+      .then(response => {
         if (response.data.totalHits === 0) {
           throw new Error("Something went wrong, please try again later")          
         }
 
-        if (response.data.totalHits < response.config.params.per_page) {
-          
-          this.setState({ showLoadMore: false, status: 'resolved', });
+        if (response.data.totalHits < response.config.params.per_page) {          
+          setShowLoadMore(false);
+          setStatus('resolved');
         }
 
-        if (gallery.length > 0 && page > response.data.totalHits / response.config.params.per_page) {
-          
-          this.setState({ showLoadMore: false, status: 'resolved', });
+        if (page !== 1 && page > response.data.totalHits / response.config.params.per_page) {          
+          setShowLoadMore(false);
+          setStatus('resolved');
           toast("It seems You've just reached the end of the list");
         }
         
-        this.setState({ gallery: [...prevGallery, ...response.data.hits], status: 'resolved', });
-
-      } catch (error) {
+        setGallery(state => [...state, ...response.data.hits]);
+        setStatus('resolved');
+        
+      }).catch (error => {
         toast.error(error.message);
-        this.setState({ status: 'rejected', error: error.message });
-      }
-    }
+        setStatus('rejected');       
+      })
+  }, [querry, page])
+
+  const handleSubmit = (querry) => {
+    setQuerry(querry);
+    setPage(1)
+    setGallery([]);
+    setShowLoadMore(true);
   }
 
-  handleSubmit = (querry) => {
-    this.setState({
-      querry,      
-      page: 0,
-      gallery: [],
-      showLoadMore: true,
-    })
+  const handleLoadMore = () => {
+    setPage(state => state + 1);
   }
 
-  handleLoadMore = () => {
-    this.setState(prevState => {
-      return {
-        page: prevState.page + 1, 
-      }
-    })
-  }
-
-  toggleModal = (id) => {
-    
-    this.setState({      
-      showModal: id? this.state.gallery.filter(galleryItem => galleryItem.id === id) : false,
-    }) 
-  }
-
-  render() {
-
-    const { querry, gallery, status, showLoadMore, showModal } = this.state;
+  const toggleModal = (id) => {
+    setShowModal(id? gallery.filter(galleryItem => galleryItem.id === id) : false)
+  }  
        
-    return (
-      <Container>
-        <Searchbar
-          onSubmit={this.handleSubmit}
-          querry={querry}
-        />
-        {status !== 'rejected' &&
-          <ImageGallery
-            gallery={gallery}
-            toggleModal={this.toggleModal}>
-            <Loader status={status} />
-          </ImageGallery>
-        }
-        {status === 'resolved' && showLoadMore &&
-          <Button            
-            onLoadMore={this.handleLoadMore} />}        
-        {showModal &&
-          <Modal
-            image={showModal}       
-            toggleModal={this.toggleModal} />}
-        <ToastContainer
-          limit={3}
-        />
-      </Container>
-    )
-  }
+  return (
+    <Container>
+      <Searchbar
+        onSubmit={handleSubmit}
+        querry={querry}
+      />
+      <ImageGallery
+        gallery={gallery}
+        toggleModal={toggleModal}>
+        <Loader status={status} />
+      </ImageGallery>
+      {status === 'resolved' && showLoadMore &&
+        <Button            
+          onLoadMore={handleLoadMore} />}        
+      {showModal &&
+        <Modal
+          image={showModal}       
+          toggleModal={toggleModal} />}
+      <ToastContainer
+        limit={3}
+      />
+    </Container>
+  )
 }
+
