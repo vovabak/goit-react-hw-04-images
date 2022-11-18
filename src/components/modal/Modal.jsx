@@ -4,16 +4,15 @@ import { Overlay, ModalWindow } from './Modal.styled';
 
 export const Modal = ({ image, toggleModal }) => {
     
-    useEffect(() => {
+    useEffect((onClose = (e) => {
+        
+            if (e.key !== 'Escape') return
+
+            toggleModal()
+        }) => {
         document.addEventListener('keydown', onClose)
         return () => document.removeEventListener('keydown', onClose)        
-    })
-
-    const onClose = (e) => {
-        if (e.key !== 'Escape') return
-
-        toggleModal()
-    }
+    }, [toggleModal])   
 
     const onClick = (e) => {
 
